@@ -72,6 +72,6 @@ Change one thing at a time and write down the settings you used.
 
 ## Author
 
-Muhammad Ali Abubakar
-GitHub: [@Mohsadauki](https://github.com/Mohsadauki)
+Muhammad Ali Abubakar  
+GitHub: [@Mohsadauki](https://github.com/Mohsadauki)  
 Email: muhammadaliabubakar6@gmail.com
