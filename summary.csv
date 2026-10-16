@@ -1,0 +1,4 @@
+policy,users,capacity_mbps,total_demand_mbps,total_allocated_mbps,utilization_fraction,jains_fairness_index,mean_unmet_demand_fraction_proxy,estimated_delay_ms_illustrative
+equal,20,50.0,130.2063,50.0,1.0,0.9843,0.5106,90.0
+priority,20,50.0,130.2063,50.0,1.0,0.9549,0.5133,90.0
+weighted,20,50.0,130.2063,50.0,1.0,0.8791,0.504,90.0
