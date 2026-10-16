@@ -68,6 +68,6 @@ The same settings and random seed always give the same results, so note your set
 
 ## Author
 
-Muhammad Ali Abubakar
-GitHub: [@Mohsadauki](https://github.com/Mohsadauki)
+Muhammad Ali Abubakar  
+GitHub: [@Mohsadauki](https://github.com/Mohsadauki)  
 Email: muhammadaliabubakar6@gmail.com
