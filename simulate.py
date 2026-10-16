@@ -1,7 +1,7 @@
-"""Reproducible toy model for comparing bandwidth allocation policies.
+"""Toy model for comparing bandwidth allocation policies.
 
-This is not a packet-level network simulator. Delay and loss are illustrative
-heuristics so that the project can demonstrate an end-to-end experiment workflow.
+This is a packet-level network simulator. The delay and unmet-demand
+numbers are rough proxies, measurements of a real network.
 """
 from __future__ import annotations
 
@@ -105,15 +105,23 @@ def run_experiment(config: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
     delay_scale = float(config["congestion_delay_scale_ms"])
 
     for policy, allocation in allocations.items():
-        # Illustrative proxies only; these are not packet-level delay/loss results.
+        # Rough proxies only, not packet-level delay or loss.
         unmet_fraction = np.divide(
             np.maximum(demand - allocation, 0.0), demand,
             out=np.zeros_like(demand), where=demand > 0
         )
+        # Share of each user's demand that was served (1.0 means fully served).
+        satisfaction = np.divide(
+            allocation, demand, out=np.ones_like(demand), where=demand > 0
+        )
         utilization = float(np.sum(allocation) / capacity) if capacity > 0 else 0.0
         estimated_delay = base_delay + delay_scale * max(0.0, utilization - 0.70) / 0.30
         estimated_delay = min(estimated_delay, base_delay + delay_scale)
-        fairness = jains_fairness(allocation)
+        fairness_allocation = jains_fairness(allocation)
+        fairness_satisfaction = jains_fairness(satisfaction)
+        mean_sat_high = float(np.mean(satisfaction[high_priority]))
+        standard = ~high_priority
+        mean_sat_standard = float(np.mean(satisfaction[standard])) if np.any(standard) else float("nan")
 
         for i in range(n):
             user_rows.append({
@@ -123,6 +131,7 @@ def run_experiment(config: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
                 "weight": int(weights[i]),
                 "demand_mbps": round(float(demand[i]), 4),
                 "allocated_mbps": round(float(allocation[i]), 4),
+                "satisfaction": round(float(satisfaction[i]), 4),
                 "unmet_demand_fraction_proxy": round(float(unmet_fraction[i]), 4),
                 "estimated_delay_ms_illustrative": round(float(estimated_delay), 4),
             })
@@ -134,7 +143,10 @@ def run_experiment(config: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
             "total_demand_mbps": round(float(np.sum(demand)), 4),
             "total_allocated_mbps": round(float(np.sum(allocation)), 4),
             "utilization_fraction": round(utilization, 4),
-            "jains_fairness_index": round(fairness, 4),
+            "jains_fairness_allocation": round(fairness_allocation, 4),
+            "jains_fairness_satisfaction": round(fairness_satisfaction, 4),
+            "mean_satisfaction_high_priority": round(mean_sat_high, 4),
+            "mean_satisfaction_standard": round(mean_sat_standard, 4),
             "mean_unmet_demand_fraction_proxy": round(float(np.mean(unmet_fraction)), 4),
             "estimated_delay_ms_illustrative": round(float(estimated_delay), 4),
         })
@@ -143,17 +155,31 @@ def run_experiment(config: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
 
 
 def make_chart(summary: pd.DataFrame, output_path: Path) -> None:
-    """Save a compact chart of total allocation and fairness by policy."""
-    fig, axes = plt.subplots(1, 2, figsize=(10, 4.2))
-    axes[0].bar(summary["policy"], summary["total_allocated_mbps"])
-    axes[0].set_title("Total allocated throughput")
-    axes[0].set_ylabel("Mbps")
-    axes[1].bar(summary["policy"], summary["jains_fairness_index"])
-    axes[1].set_title("Jain's fairness index")
-    axes[1].set_ylabel("Index (0–1)")
+    """Save a chart comparing fairness and how well each group is served."""
+    fig, axes = plt.subplots(1, 3, figsize=(13, 4.2))
+    policies = summary["policy"]
+
+    axes[0].bar(policies, summary["jains_fairness_allocation"])
+    axes[0].set_title("Jain's index on allocated Mbps")
+    axes[0].set_ylim(0, 1.05)
+
+    axes[1].bar(policies, summary["jains_fairness_satisfaction"])
+    axes[1].set_title("Jain's index on share of demand served")
+    axes[1].set_ylim(0, 1.05)
+
+    x = np.arange(len(policies))
+    width = 0.38
+    axes[2].bar(x - width / 2, summary["mean_satisfaction_high_priority"], width, label="high priority")
+    axes[2].bar(x + width / 2, summary["mean_satisfaction_standard"], width, label="standard")
+    axes[2].set_xticks(x)
+    axes[2].set_xticklabels(policies)
+    axes[2].set_title("Average share of demand served")
+    axes[2].set_ylim(0, 1.05)
+    axes[2].legend()
+
     for ax in axes:
         ax.grid(axis="y", alpha=0.25)
-    fig.suptitle("Toy-model results (not real network measurements)")
+    fig.suptitle("Toy model results, not real network measurements")
     fig.tight_layout()
     fig.savefig(output_path, dpi=160)
     plt.close(fig)
@@ -181,12 +207,15 @@ def main() -> None:
     if float(config["demand_min_mbps"]) < 0 or float(config["demand_max_mbps"]) <= float(config["demand_min_mbps"]):
         raise ValueError("Demand range must satisfy 0 <= min < max.")
 
+    if int(config["weight_min"]) < 1 or int(config["weight_max"]) < int(config["weight_min"]):
+        raise ValueError("Weights must satisfy 1 <= weight_min <= weight_max.")
+
     output_dir.mkdir(parents=True, exist_ok=True)
     users, summary = run_experiment(config)
     users.to_csv(output_dir / "user_results.csv", index=False)
     summary.to_csv(output_dir / "summary.csv", index=False)
     make_chart(summary, output_dir / "summary.png")
-    print("Experiment completed. These are synthetic toy-model results.")
+    print("Experiment completed with synthetic data.")
     print(summary.to_string(index=False))
     print(f"\nWrote outputs to: {output_dir.resolve()}")
 
