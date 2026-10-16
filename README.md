@@ -1,106 +1,77 @@
-# Campus Network Optimization and Fair Bandwidth Allocation
+# Campus Network Optimization: Fair Bandwidth Allocation
 
-## About this project
+When many people share a small internet connection, some get slow speeds while others get plenty. This project is a small simulation I built to compare three ways of sharing a limited link among users who want different amounts of bandwidth.
 
-Universities depend on reliable internet access for teaching, research, and administration. When many people share a limited connection, some users may experience slower speeds or longer delays.
-
-This project is a small, reproducible starting point for exploring how different bandwidth-allocation rules affect users sharing a constrained link. It uses a synthetic workload so the experiment can be run without access to a real campus network.
-
-**Important:** this is an educational allocation model, not a packet-level network simulator. Its delay and packet-loss values are illustrative estimates, not measurements from a real network.
+**Please note:** this is a simple allocation model . It is a packet level network simulator, and the numbers are measurements of a real network, including the Yobe State University network.
 
 ## Research question
 
-How do equal, priority-based, and weighted bandwidth allocation compare when users have different levels of demand?
+How do equal, priority and weighted sharing compare when users have different demands?
 
-## Allocation policies
+## The three policies
 
-- **Equal share:** capacity is divided evenly among users, subject to each user's demand.
-- **Priority-based:** a configurable share of capacity is reserved for high-priority users; remaining capacity is shared among users who still have unmet demand.
-- **Weighted share:** users receive capacity in proportion to their configured weights, subject to their demand.
+- **Equal:** every user gets the same share, but nobody gets more than they asked for. Unused capacity goes to users who still want more.
+- **Priority:** part of the capacity is kept for high-priority users. The rest is shared among the other users, and any leftover goes to whoever still has unmet demand.
+- **Weighted:** users get capacity in proportion to a weight, again capped at their demand.
 
-The model reallocates unused capacity when a user does not need its initial share.
+## What the script reports
 
-## Metrics
-
-The script reports:
-- Allocated throughput per user (Mbps)
+- How much each user asked for and how much they got (Mbps)
 - Total allocated throughput and link utilization
-- Jain's fairness index across users' allocated throughput
-- An illustrative delay estimate
-- An illustrative loss estimate based on unmet demand
+- Jain's fairness index on the allocated Mbps
+- Jain's fairness index on the share of demand each user got (satisfaction)
+- Average satisfaction for high-priority and standard users
+- A rough delay estimate and an unmet-demand figure (both simple proxies, not real delay or packet loss)
 
-The delay and loss formulas are simple heuristics used to demonstrate analysis workflows. They are not validated models of real network queues or packet transmission.
+I report two fairness numbers because they can rank the policies differently. Jain's index on raw Mbps rewards giving everyone the same amount, even if some users asked for much less. The satisfaction version looks at how much of each user's own demand was served.
 
-## Project files
+## Folder layout
 
 ```text
 campus-network-optimization/
-├── README.md
-├── requirements.txt
-├── .gitignore
-├── config/
-│   └── experiment.json
-├── src/
-│   └── simulate.py
-├── tests/
-│   └── test_simulate.py
-├── docs/
-│   └── methodology.md
-└── results/
-    └── .gitkeep
+  README.md
+  requirements.txt
+  config/experiment.json
+  src/simulate.py
+  tests/test_simulate.py
+  docs/methodology.md
+  results/
 ```
 
-## Run on an Android phone
+## How to run it
 
-You can keep the code on GitHub using your phone. To run it, use a browser-based Python environment such as [Google Colab](https://colab.research.google.com/).
+On a computer, or on a phone using Google Colab:
 
-1. Upload the repository files to Colab, or upload the repository ZIP and extract it.
-2. Install the requirements:
+```text
+pip install -r requirements.txt
+python src/simulate.py --config config/experiment.json --outdir results
+```
 
-   ```python
-   !pip install -r requirements.txt
-   ```
+To run the tests:
 
-3. Run the experiment:
+```text
+python -m unittest tests.test_simulate
+```
 
-   ```python
-   !python src/simulate.py --config config/experiment.json --outdir results
-   ```
+The script writes three files into the results folder: `user_results.csv`, `summary.csv` and `summary.png`. The same config file and seed always give the same results, so keep the config with any results you report.
 
-If you use a local computer later, Python 3.10 or newer is recommended.
+## Things to try
 
-## Outputs
+1. Run the default config.
+2. Change `capacity_mbps` to 20, 50 and 100.
+3. Change the number of users to 10, 20 and 50.
+4. Repeat with several seeds and average the results.
 
-The script creates:
-- `user_results.csv` — per-user demand and allocation for each policy
-- `summary.csv` — summary metrics for each policy
-- `summary.png` — a chart comparing throughput, fairness, and illustrative estimates
+Change one thing at a time and write down the settings you used.
 
-The same configuration and random seed produce the same synthetic demand and weights. Keep the configuration alongside any results you report.
+## What to know before reading the results
 
-## Suggested experiments
-
-1. Run the baseline configuration.
-2. Change `capacity_mbps` to 20, 50, and 100.
-3. Change the number of users to 10, 20, and 50.
-4. Repeat with multiple seeds and compare averages.
-5. Discuss trade-offs, especially where improving one group's allocation may reduce fairness for others.
-
-Change one parameter at a time when possible, and record each configuration used.
-
-## Limitations and next steps
-
-This model does not simulate packets, TCP/UDP behavior, wireless interference, queue scheduling, routing, or protocol overhead. Its delay and loss values are illustrative only. The results should not be described as measurements of Yobe State University's network.
-
-A future version could validate the question in Mininet or another packet-level network simulator and compare the simplified model with measured results from a controlled testbed.
-
-## Research integrity
-
-This repository starts with a simulation model, not a completed campus-network study. Run the code before reporting results. Describe the setup, assumptions, and limitations clearly, and do not claim real-world improvements without suitable evidence.
+- When total demand is higher than capacity, all three policies use the whole link. Total throughput, utilization and the delay estimate then come out the same for every policy, so only the fairness and satisfaction figures separate them.
+- When capacity is higher than total demand, everyone gets everything they asked for and the policies give identical results.
+- The model has no packets, TCP behaviour, wireless interference or routing. A next step would be to test the same question in a packet-level simulator such as Mininet and compare.
 
 ## Author
 
-**Muhammad Ali Abubakar**
-
-- GitHub: [@Mohsadauki](https://github.com/Mohsadauki)
-- Email: [muhammadaliabubakar6@gmail.com](mailto:muhammadaliabubakar6@gmail.com)
+Muhammad Ali Abubakar
+GitHub: [@Mohsadauki](https://github.com/Mohsadauki)
+Email: muhammadaliabubakar6@gmail.com
